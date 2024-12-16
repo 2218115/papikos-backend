@@ -13,36 +13,47 @@ class Kos extends Model
 
     protected $guarded = [];
 
-    public function tipe_kos() {
+    public function tipe_kos()
+    {
         return $this->belongsTo(TipeKos::class, 'id_tipe_kos', 'id');
     }
 
-    public function fasilitas_kos() {
+    public function fasilitas_kos()
+    {
         return $this->hasMany(KosFasilitas::class, 'id_kos', 'id');
     }
 
-    public function peraturan_kos() {
+    public function peraturan_kos()
+    {
         return $this->hasMany(KosPeraturan::class, 'id_kos', 'id');
     }
 
-    public function fotos() {
+    public function fotos()
+    {
         return $this->hasMany(KosFotos::class, 'id_kos', 'id');
     }
 
-    public function history_status() {
+    public function history_status()
+    {
         return $this->hasMany(KosStatusHistory::class, 'id_kos', 'id');
     }
 
-    public function ulasan() {
+    public function ulasan()
+    {
         return $this->hasMany(KosUlasan::class, 'id_kos', 'id');
     }
 
     public function current_status()
     {
         $latest = $this->history_status()
-        ->orderBy('created_at', 'desc')
-        ->first();
+            ->orderBy('created_at', 'desc')
+            ->first();
 
         return $latest;
+    }
+
+    public function pemilik()
+    {
+        return $this->belongsTo(User::class, 'id_pemilik', 'id');
     }
 }

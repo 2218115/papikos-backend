@@ -23,10 +23,10 @@ Route::prefix('auth')->group(function () {
     Route::post('register/pemilik-kos', [AuthController::class, 'pemilik_kos_register']);
     Route::get('me', [AuthController::class, 'current_user'])->middleware('auth:sanctum');
     Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
-
 });
 
 Route::prefix('kos')->group(function () {
+    Route::get('/analitik', [KosController::class, 'get_analitik_data'])->middleware('auth:sanctum');
     Route::post('', [KosController::class, 'create_kos'])->middleware('auth:sanctum');
     Route::get('', [KosController::class, 'get_all_kos']);
     Route::get('{id}', [KosController::class, 'get_detail_kos_data']);

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('nama');
             $table->timestamps();
         });
-        
+
         Schema::create('kos', function (Blueprint $table) {
             $table->id();
             $table->string('nama');
@@ -26,11 +26,13 @@ return new class extends Migration
             $table->integer('kamar_tersedia');
             $table->string('narahubung_kos');
             $table->unsignedBigInteger('id_tipe_kos');
+            $table->unsignedBigInteger('id_pemilik');
             $table->string('embed_gmaps');
             $table->double('total_rating');
             $table->timestamps();
 
             $table->foreign('id_tipe_kos')->references('id')->on('tipe_kos');
+            $table->foreign('id_pemilik')->references('id')->on('users');
         });
 
         Schema::create('kos_ulasan', function (Blueprint $table) {
@@ -55,7 +57,7 @@ return new class extends Migration
 
             $table->foreign('id_kos')->references('id')->on('kos');
         });
-        
+
         Schema::create('kos_fasilitas', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('id_kos');
@@ -64,7 +66,7 @@ return new class extends Migration
 
             $table->foreign('id_kos')->references('id')->on('kos');
         });
-        
+
         Schema::create('kos_peraturan', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('id_kos');

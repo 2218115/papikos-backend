@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\Storage;
 
 class FileController extends Controller
 {
-    public function get_private_file(Request $request, $path, $filename) {
+    public function get_private_file(Request $request, $path, $filename)
+    {
         $path = $path . '/' . $filename;
 
         // jika user bukan admin jangan perbolehkan akses private file
