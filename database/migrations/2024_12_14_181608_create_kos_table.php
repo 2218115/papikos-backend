@@ -27,7 +27,7 @@ return new class extends Migration
             $table->string('narahubung_kos');
             $table->unsignedBigInteger('id_tipe_kos');
             $table->unsignedBigInteger('id_pemilik');
-            $table->string('embed_gmaps');
+            $table->text('embed_gmaps');
             $table->double('total_rating');
             $table->timestamps();
 

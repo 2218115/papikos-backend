@@ -12,4 +12,8 @@ class KosStatusHistory extends Model
     public $table = 'kos_status_history';
 
     protected $guarded = [];
+
+    public function status() {
+        return $this->belongsTo(KosStatus::class, 'id_status', 'id');
+    }
 }

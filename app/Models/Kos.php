@@ -45,11 +45,8 @@ class Kos extends Model
 
     public function current_status()
     {
-        $latest = $this->history_status()
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        return $latest;
+        return $this->hasOne(KosStatusHistory::class, 'id_kos', 'id')
+            ->latestOfMany();
     }
 
     public function pemilik()

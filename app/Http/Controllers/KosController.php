@@ -9,25 +9,52 @@ use App\Models\KosFasilitas;
 use App\Models\KosPeraturan;
 use App\Models\KosFotos;
 use App\Models\KosStatusHistory;
+use App\Models\KosStatus;
+use App\Models\TipeKos;
+use App\Models\User;
+
 use Exception;
 
 class KosController extends Controller
 {
     public function create_kos(Request $request)
     {
-        $validated = $request->validate([
-            'nama' => 'required',
-            'harga_kos' => 'required',
-            'minimal_sewa' => 'required',
-            'lokasi_kos' => 'required',
-            'kamar_tersedia' => 'required',
-            'narahubung_kos' => 'required',
-            'tipe_kos' => 'required|exists:tipe_kos,id',
-            'embed_gmaps' => 'required',
-            'kos_fotos.*' => 'required',
-            'kos_fasilitas.*' => 'required',
-            'kos_peraturan.*' => 'required',
-        ]);
+        $user = $request->user();
+
+        $validated = array();
+
+        if ($user->role === 'ADMIN') {
+            $validated = $request->validate([
+                'nama' => 'required',
+                'harga_kos' => 'required',
+                'minimal_sewa' => 'required',
+                'lokasi_kos' => 'required',
+                'kamar_tersedia' => 'required',
+                'narahubung_kos' => 'required',
+                'tipe_kos' => 'required|exists:tipe_kos,id',
+                'embed_gmaps' => 'required',
+                'kos_fotos' => 'required|array|min:1',
+                'kos_fasilitas' => 'required|array|min:1',
+                'kos_peraturan' => 'required|array|min:1',
+                'pemilik' => 'required',
+            ]);
+        } else  {
+            $validated = $request->validate([
+                'nama' => 'required',
+                'harga_kos' => 'required',
+                'minimal_sewa' => 'required',
+                'lokasi_kos' => 'required',
+                'kamar_tersedia' => 'required',
+                'narahubung_kos' => 'required',
+                'tipe_kos' => 'required|exists:tipe_kos,id',
+                'embed_gmaps' => 'required',
+                'kos_fotos' => 'required|array|min:1',
+                'kos_fasilitas' => 'required|array|min:1',
+                'kos_peraturan' => 'required|array|min:1',
+            ]);
+            $validated['pemilik'] = $user->id;
+        }
+
 
         try {
 
@@ -41,6 +68,7 @@ class KosController extends Controller
                 'id_tipe_kos' => $validated['tipe_kos'],
                 'embed_gmaps' => $validated['embed_gmaps'],
                 'total_rating' => 0,
+                'id_pemilik' => $validated['pemilik'],
             ]);
 
             $fasilitas_kos = [];
@@ -73,7 +101,6 @@ class KosController extends Controller
             KosFotos::insert($kos_fotos);
 
             // history status kos
-            $user = $request->user();
             $catatan_template = '#' . $user->id;
 
             if ($user->role == 'ADMIN') {
@@ -94,20 +121,33 @@ class KosController extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Gagal',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
-    public function get_all_kos()
+    public function get_all_kos(Request $request)
     {
-        $kos_list = Kos::with([
-            'tipe_kos',
-            'fotos',
-        ])->paginate(12);
+        $search = $request->query('search');
+        $statusId = $request->query('status_id');
+
+        $status_filter = KosStatus::all();
+
+        $kos = Kos::with('fotos')->when($search, function ($query, $search) {
+            return $query->where('nama', 'LIKE', "%{$search}%");
+        })
+        ->when($statusId, function ($query, $statusId) {
+            return $query->whereHas('current_status', function ($subQuery) use ($statusId) {
+                $subQuery->where('id_status', $statusId);
+            });
+        })
+        ->with(['tipe_kos', 'pemilik', 'current_status.status'])
+        ->paginate(10);
 
         return response()->json([
-            'message' => 'Berhasil',
-            'data' => $kos_list,
+            'success' => true,
+            'data' => $kos,
+            'status_filter' => $status_filter,
         ]);
     }
 
@@ -122,9 +162,11 @@ class KosController extends Controller
             'ulasan' => function ($query) {
                 $query->whereNull('id_balasan');
             },
+            'pemilik',
             'ulasan.pemberi_ulasan',
             'ulasan.balasan',
             'ulasan.balasan.pemberi_ulasan',
+            'current_status.status',
         ])->find($id);
 
         return response()->json([
@@ -192,8 +234,9 @@ class KosController extends Controller
 
     public function update_kos() {}
 
-    public function get_analitik_data()
+    public function get_analitik_data(Request $request)
     {
+
         $count_all_kos = Kos::count();
         $count_approved_kos = Kos::whereHas('history_status', function ($query) {
             $query->where('id_status', 2)
@@ -209,10 +252,25 @@ class KosController extends Controller
         })->count();
 
         return response()->json([
-            'count_all_kos' => $count_all_kos,
-            'count_approved_kos' => $count_approved_kos,
-            'count_waiting_kos' => $count_waiting_kos,
-            'count_rejected_kos' => $count_rejected_kos,
+            'data' => [
+                'count_all_kos' => $count_all_kos,
+                'count_approved_kos' => $count_approved_kos,
+                'count_waiting_kos' => $count_waiting_kos,
+                'count_rejected_kos' => $count_rejected_kos,
+            ],
+        ]);
+    }
+
+    public function get_form_init() {
+        $tipe_kos = TipeKos::all();
+        $pemilik_kos = User::where('role', 'PEMILIK_KOS')->get();
+        
+        return response()->json([
+            'message' => 'Berhasil',
+            'data' => [
+                'tipe_kos' => $tipe_kos,
+                'pemilik_kos' => $pemilik_kos,
+            ],
         ]);
     }
 }

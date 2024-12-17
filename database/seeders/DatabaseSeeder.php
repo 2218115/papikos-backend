@@ -2,8 +2,9 @@
 
 namespace Database\Seeders;
 
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\TipeKos;
+use App\Models\KosStatus;
 
 class DatabaseSeeder extends Seeder
 {
@@ -12,11 +13,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
+        TipeKos::insert([
+            ['nama' => 'Laki-Laki'],
+            ['nama' => 'Perempuan'],
+            ['nama' => 'Campur'],
+        ]);
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        KosStatus::insert([
+            ['nama' => 'Diajukan'],
+            ['nama' => 'Disetujui'],
+            ['nama' => 'Ditolak'],
+            ['nama' => 'Ditahan'],
+        ]);
     }
 }
