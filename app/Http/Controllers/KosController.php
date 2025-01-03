@@ -38,7 +38,7 @@ class KosController extends Controller
                 'kos_peraturan' => 'required|array|min:1',
                 'pemilik' => 'required',
             ]);
-        } else  {
+        } else {
             $validated = $request->validate([
                 'nama' => 'required',
                 'harga_kos' => 'required',
@@ -130,19 +130,23 @@ class KosController extends Controller
     {
         $search = $request->query('search');
         $statusId = $request->query('status_id');
+        $pemilikId = $request->query('pemilik');
 
         $status_filter = KosStatus::all();
 
         $kos = Kos::with('fotos')->when($search, function ($query, $search) {
             return $query->where('nama', 'LIKE', "%{$search}%");
         })
-        ->when($statusId, function ($query, $statusId) {
-            return $query->whereHas('current_status', function ($subQuery) use ($statusId) {
-                $subQuery->where('id_status', $statusId);
-            });
-        })
-        ->with(['tipe_kos', 'pemilik', 'current_status.status'])
-        ->paginate(10);
+            ->when($statusId, function ($query, $statusId) {
+                return $query->whereHas('current_status', function ($subQuery) use ($statusId) {
+                    $subQuery->where('id_status', $statusId);
+                });
+            })
+            ->when($pemilikId, function ($query, $pemilikId) {
+                return $query->where('id_pemilik', $pemilikId);
+            })
+            ->with(['tipe_kos', 'pemilik', 'current_status.status'])
+            ->paginate(10);
 
         return response()->json([
             'success' => true,
@@ -180,7 +184,7 @@ class KosController extends Controller
         $user = $request->user();
         $kos = Kos::find($id);
 
-        if ($kos->current_status()->id_status == 2) {
+        if ($kos->current_status->id_status == 2) {
             return response()->json([
                 'message' => 'Berhasil',
             ]);
@@ -210,7 +214,7 @@ class KosController extends Controller
         $user = $request->user();
         $kos = Kos::with('history_status')->find($id);
 
-        if ($kos->current_status()->id_status == 3) {
+        if ($kos->current_status->id_status == 3) {
             return response()->json([
                 'message' => 'Berhasil',
             ]);
@@ -218,7 +222,7 @@ class KosController extends Controller
 
         $catatan_template = '#' . $user->id;
         $catatan_template = $catatan_template . '[Admin]' . '[' . $user->name . ']' . ' Melakukan Reject data kos.';
-        $catatan_template = $catatan_template . '\n' . $validated['catatan'];
+        $catatan_template = $catatan_template . '<br>' . $validated['catatan'];
 
         KosStatusHistory::create([
             'id_kos' => $kos->id,
@@ -232,7 +236,43 @@ class KosController extends Controller
         ]);
     }
 
-    public function update_kos() {}
+    public function suspend(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'catatan' => 'required',
+        ]);
+
+        $user = $request->user();
+        $kos = Kos::with('history_status')->find($id);
+
+        if ($kos->current_status->id_status == 3) {
+            return response()->json([
+                'message' => 'Berhasil',
+            ]);
+        }
+
+        $catatan_template = '#' . $user->id;
+        $catatan_template = $catatan_template . '[Admin]' . '[' . $user->name . ']' . ' Me Nangguhkan data kos.';
+        $catatan_template = $catatan_template . '<br>' . $validated['catatan'];
+
+        KosStatusHistory::create([
+            'id_kos' => $kos->id,
+            'id_status' => '4', // 3 Di tangguhkan
+            'id_pembuat' => $user->id,
+            'catatan' => $catatan_template,
+        ]);
+
+        return response()->json([
+            'message' => 'Berhasil',
+        ]);
+    }
+
+    public function update_kos()
+    {
+        return response()->json([
+            'data' => 'TODO',
+        ]);
+    }
 
     public function get_analitik_data(Request $request)
     {
@@ -261,15 +301,46 @@ class KosController extends Controller
         ]);
     }
 
-    public function get_form_init() {
+    public function get_form_init()
+    {
         $tipe_kos = TipeKos::all();
         $pemilik_kos = User::where('role', 'PEMILIK_KOS')->get();
-        
+
         return response()->json([
             'message' => 'Berhasil',
             'data' => [
                 'tipe_kos' => $tipe_kos,
                 'pemilik_kos' => $pemilik_kos,
+            ],
+        ]);
+    }
+
+    public function get_analitik_data_pemilik(Request $request)
+    {
+        $user = $request->user();
+
+        $count_all_kos = Kos::where('id_pemilik', $user->id)->count();
+        $count_approved_kos = Kos::whereHas('history_status', function ($query) use ($user) {
+            $query->where('id_status', 2)->where('id_pemilik', $user->id)
+                ->whereRaw('created_at = (SELECT MAX(created_at) FROM kos_status_history WHERE kos_status_history.id_kos = kos.id)');
+        })->count();
+
+        $count_rejected_kos = Kos::whereHas('history_status', function ($query) use ($user) {
+            $query->where('id_status', 3)->where('id_pemilik', $user->id)
+                ->whereRaw('created_at = (SELECT MAX(created_at) FROM kos_status_history WHERE kos_status_history.id_kos = kos.id)');
+        })->count();
+
+        $count_waiting_kos = Kos::whereHas('history_status', function ($query) use ($user) {
+            $query->where('id_status', 1)->where('id_pemilik', $user->id)
+                ->whereRaw('created_at = (SELECT MAX(created_at) FROM kos_status_history WHERE kos_status_history.id_kos = kos.id)');
+        })->count();
+
+        return response()->json([
+            'data' => [
+                'count_all_kos' => $count_all_kos,
+                'count_approved_kos' => $count_approved_kos,
+                'count_waiting_kos' => $count_waiting_kos,
+                'count_rejected_kos' => $count_rejected_kos,
             ],
         ]);
     }
