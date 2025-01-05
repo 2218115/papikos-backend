@@ -15,14 +15,14 @@ class UlasanController extends Controller
         $validated = $request->validate([
             'ulasan' => 'required',
             'rating' => 'required',
-            'kos' => 'required',
+            'id_kos' => 'required',
         ]);
 
         $user = $request->user();
         $kos = Kos::find($validated['id_kos']);
 
         KosUlasan::create([
-            'id_kos' => $validated['kos'],
+            'id_kos' => $kos->id,
             'id_pemberi_ulasan' => $user->id,
             'rating' => $validated['rating'],
             'ulasan' => $validated['ulasan'],

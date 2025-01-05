@@ -40,13 +40,14 @@ Route::prefix('kos')->group(function () {
 });
 
 Route::prefix("booking")->group(function () {
-    Route::get("", [BookingController::class, 'get_booking_by_kos']);
-    Route::post("", [BookingController::class, 'add_booking']);
+    Route::get("", [BookingController::class, 'get_all_my_booking'])->middleware('auth:sanctum');
+    // Route::get("", [BookingController::class, 'get_booking_by_kos']);
+    Route::post("", [BookingController::class, 'add_booking'])->middleware('auth:sanctum');
 });
 
 Route::prefix("ulasan")->group(function () {
+    Route::post('', [UlasanController::class, 'add_ulasan'])->middleware('auth:sanctum');
     Route::get('', [UlasanController::class, 'get_all_ulasan']);
-    Route::post('', [UlasanController::class, 'add_ulasan']);
 });
 
 // storage
