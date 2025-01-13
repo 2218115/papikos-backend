@@ -37,4 +37,31 @@ class UlasanController extends Controller
             'message' => 'Berhasil',
         ]);
     }
+
+    public function add_balasan(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'ulasan' => 'required',
+            'rating' => 'required',
+            'id_kos' => 'required',
+        ]);
+
+        $user = $request->user();
+
+        $ulasan = KosUlasan::find($id);
+
+        $balasan = KosUlasan::create([
+            'id_kos' => $ulasan->kos->id,
+            'id_pemberi_ulasan' => $user->id,
+            'rating' => $validated['rating'],
+            'ulasan' => $validated['ulasan'],
+        ]);
+
+        $ulasan->id_balasan = $balasan->id;
+
+        return response()->json([
+            'data' => null,
+            'message' => 'Berhasil',
+        ]);
+    }
 }

@@ -43,6 +43,10 @@ Route::prefix("booking")->group(function () {
     Route::get("", [BookingController::class, 'get_all_my_booking'])->middleware('auth:sanctum');
     // Route::get("", [BookingController::class, 'get_booking_by_kos']);
     Route::post("", [BookingController::class, 'add_booking'])->middleware('auth:sanctum');
+    Route::post("/approove/{id}", [BookingController::class, 'approve_booking'])->middleware('auth:sanctum');
+    Route::post("/reject/{id}", [BookingController::class, 'reject_booking'])->middleware('auth:sanctum');
+    Route::post("/done/{id}", [BookingController::class, 'done_booking'])->middleware('auth:sanctum');
+    Route::post("/cancel/{id}", [BookingController::class, 'cancel_booking'])->middleware('auth:sanctum');
 });
 
 Route::prefix("ulasan")->group(function () {
