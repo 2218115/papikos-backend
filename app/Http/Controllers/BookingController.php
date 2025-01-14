@@ -69,6 +69,7 @@ class BookingController extends Controller
             'tanggal_berakhir' => 'required',
             'catatan' => 'required',
             'id_kos' => 'required',
+            'jumlah_kamar' => 'required',
         ]);
 
         $user = $request->user();
@@ -86,10 +87,11 @@ class BookingController extends Controller
             'total' => $total,
             'tanggal_mulai' => Carbon::parse($validated['tanggal_awal']),
             'tanggal_berakhir' => Carbon::parse($validated['tanggal_berakhir']),
+            'jumlah_kamar' => $validated['jumlah_kamar'],
         ]);
 
         return response()->json([
-            'mesasge' => 'Berhasil',
+            'message' => 'Berhasil',
             'data' => 'ok',
         ]);
     }
@@ -100,8 +102,12 @@ class BookingController extends Controller
         $booking->id_status = 3; // Di Setuji
         $booking->update();
 
+        $kos = Kos::find($booking->id_kos);
+        $kos->kamar_tersedia = $kos->kamar_tersedia - $booking->jumlah_kamar;
+        $kos->update();
+
         return response()->json([
-            'mesasge' => 'Berhasil',
+            'message' => 'Berhasil',
             'data' => 'ok',
         ]);
     }
@@ -119,8 +125,12 @@ class BookingController extends Controller
         $booking->id_status = 4; // Selesai
         $booking->update();
 
+        $kos = Kos::find($booking->id_kos);
+        $kos->kamar_tersedia = $kos->kamar_tersedia + $booking->jumlah_kamar;
+        $kos->update();
+
         return response()->json([
-            'mesasge' => 'Berhasil',
+            'message' => 'Berhasil',
             'data' => 'ok',
         ]);
     }
@@ -132,7 +142,7 @@ class BookingController extends Controller
         $booking->update();
 
         return response()->json([
-            'mesasge' => 'Berhasil',
+            'message' => 'Berhasil',
             'data' => 'ok',
         ]);
     }
